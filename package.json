@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:tone": "node scripts/run-tone-tests.mjs --output tone_test_results.json --report tone_test_report.md"
+    "test:tone": "node scripts/run-tone-tests.mjs --output test-results/tone-latest.json --report docs/test-reports/tone-latest.md",
+    "test:tone-retrieval": "node scripts/test-tone-example-retrieval.mjs",
+    "test:tone-guard": "node scripts/test-tone-output-guard.mjs",
+    "test:tone-guard-api": "node scripts/run-tone-guard-api-tests.mjs"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.2",

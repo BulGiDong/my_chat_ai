@@ -1,6 +1,8 @@
-import { ChatMessage } from "@/types/chat";
+import { createDefaultConversationState, normalizeConversationState } from "@/lib/conversation-state";
+import { ChatMessage, ConversationState } from "@/types/chat";
 
 const STORAGE_KEY = "yoon-ai-chat-history";
+const CONVERSATION_STATE_STORAGE_KEY = "my-chat-ai-conversation-state";
 const MAX_SAVED_MESSAGES = 80;
 
 function isChatMessage(value: unknown): value is ChatMessage {
@@ -38,5 +40,25 @@ export function loadMessages(): ChatMessage[] {
     return parsed.filter(isChatMessage);
   } catch {
     return [];
+  }
+}
+
+export function saveConversationState(state: ConversationState) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CONVERSATION_STATE_STORAGE_KEY, JSON.stringify(state));
+}
+
+export function loadConversationState(): ConversationState {
+  if (typeof window === "undefined") {
+    return createDefaultConversationState();
+  }
+
+  const raw = localStorage.getItem(CONVERSATION_STATE_STORAGE_KEY);
+  if (!raw) return createDefaultConversationState();
+
+  try {
+    return normalizeConversationState(JSON.parse(raw));
+  } catch {
+    return createDefaultConversationState();
   }
 }
