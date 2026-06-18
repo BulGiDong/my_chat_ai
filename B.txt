@@ -1,0 +1,150 @@
+현재 프로젝트 상태 요약
+
+프로젝트:
+- Next.js + TypeScript + Tailwind + OpenAI API 기반 카카오톡 스타일 채팅앱
+- 위치: C:\Users\user\my-chat-ai
+- 앱은 텍스트 채팅, AI 답변, 선톡 기능이 동작하는 상태
+- 최근 작업은 "사용자가 직접 이미지 이모티콘을 보내는 기능" 추가였음
+
+중요:
+- 말투 프롬프트는 이미 맞춰놓은 상태라 건드리면 안 됨
+- 아래 파일들은 이모티콘 작업 때 일부러 수정하지 않았음
+  - app/api/chat/route.ts
+  - lib/prompts/style.ts
+  - app/api/proactive/route.ts
+  - lib/prompts/proactive.ts
+- OpenAI 호출 로직, fallback 로직, 선톡 로직도 건드리지 않았음
+
+최근 추가된 이모티콘 기능:
+- 사용자가 입력창 근처의 이모티콘 버튼을 눌러 이미지 이모티콘을 직접 보낼 수 있음
+- AI가 자동으로 이모티콘을 보내는 기능은 아직 구현하지 않았음
+- 이모티콘 전송은 사용자 메시지로만 추가됨
+- 이모티콘을 보내도 /api/chat 호출 안 함
+- 즉, 이미지 이모티콘은 OpenAI와 무관한 독립 메시지임
+
+수정된 파일:
+
+1. types/chat.ts
+- ChatMessage에 image?: string 추가됨
+- text는 기존 API 타입 호환 때문에 string으로 유지함
+- 이미지 메시지는 text: "" 와 image: "/emojis/..." 를 같이 가짐
+
+현재 형태:
+type ChatMessage = {
+  id: string;
+  role: ChatRole;
+  text: string;
+  image?: string;
+  createdAt: number;
+};
+
+2. components/EmojiPanel.tsx
+- 새로 추가된 파일
+- 카테고리별 이미지 버튼을 보여줌
+- 이미지 경로 형식:
+  /emojis/angry/1.png
+  /emojis/angry/2.png
+  /emojis/angry/3.png
+  ...
+- 카테고리:
+  angry: 화남
+  hungry: 배고파
+  love: 사랑해
+  missyou: 보고싶어
+  sad: 슬픔
+  wad: 뭐해
+  happy: 행복
+- 각 카테고리마다 1.png, 2.png, 3.png 를 렌더링함
+- 클릭하면 onSelect(imagePath)를 호출함
+- 흰색 배경, rounded-xl, shadow, grid, 내부 스크롤 구조임
+
+3. components/MessageInput.tsx
+- "use client" 추가됨
+- useState로 이모티콘 패널 열림/닫힘 관리
+- EmojiPanel import됨
+- props에 onEmojiSend: (imagePath: string) => void 추가됨
+- 기존 입력창/전송 버튼은 유지됨
+- 전송 버튼 근처에 😊 버튼 추가됨
+- 😊 버튼 클릭 시 EmojiPanel이 입력창 위에 열림
+- 이미지 선택 시:
+  - onEmojiSend(imagePath) 호출
+  - 패널 닫힘
+
+4. components/ChatWindow.tsx
+- msg.image가 있으면 이미지 이모티콘으로 렌더링함
+- msg.text 메시지는 기존 말풍선 그대로 렌더링함
+- 이미지 이모티콘은 말풍선 배경 없이 스티커처럼 보임
+- user 메시지는 오른쪽, assistant 메시지는 왼쪽 정렬 유지
+- 이미지 크기:
+  - 모바일: h-24 w-24
+  - sm 이상: h-28 w-28
+- img alt는 "이모티콘"
+
+5. app/page.tsx
+- makeImageMessage(role, imagePath) 추가됨
+- 이미지 메시지는 아래 형태:
+  {
+    id: crypto.randomUUID(),
+    role,
+    text: "",
+    image: imagePath,
+    createdAt: Date.now(),
+  }
+- sendEmoji(imagePath) 추가됨
+- sendEmoji는:
+  - loading 중이면 return
+  - user 이미지 메시지를 messages에 추가
+  - resetProactiveTimer(nextMessages)는 호출함
+  - /api/chat은 호출하지 않음
+- MessageInput에 onEmojiSend={sendEmoji} 전달됨
+- 기존 텍스트 sendMessage 로직은 유지됨
+
+6. lib/memory.ts
+- localStorage 호환 처리 수정됨
+- 기존 text 메시지와 새 image 메시지 모두 유효한 메시지로 인정함
+- isChatMessage에서 hasText 또는 hasImage가 있으면 통과함
+- saveMessages/loadMessages 구조는 유지됨
+
+현재 public/emojis 상태:
+- A.txt 요구 구조는 아래였음:
+  public/emojis/
+    angry/1.png
+    angry/2.png
+    angry/3.png
+    hungry/1.png
+    ...
+- 하지만 현재 실제 폴더에는 하위 폴더가 아직 없음
+- 현재는 public/emojis 안에 0바이트 단일 파일들이 있음:
+  angry.png
+  happy.png
+  hungry.png
+  love.png
+  missu.png
+  sad.png
+  wad.png
+- 그래서 기능은 구현되어 있지만 실제 이미지를 보려면 아래 구조로 이미지 파일을 넣어야 함:
+  public/emojis/angry/1.png
+  public/emojis/angry/2.png
+  public/emojis/angry/3.png
+  public/emojis/hungry/1.png
+  ...
+- 이미지 파일이 없으면 브라우저에서 깨진 이미지/alt만 보일 수 있음
+
+검증 상태:
+- npx tsc --noEmit 통과
+- npm run build 통과
+- http://localhost:3000 응답 200 확인됨
+- 포트 3000에 기존 dev 서버가 떠 있었음
+
+주의할 점:
+- 다음 작업자가 말투 관련 파일을 건드리면 안 됨
+- 이모티콘 기능은 사용자 직접 전송만 구현된 상태임
+- AI가 이모티콘을 자동으로 보내는 기능은 아직 없음
+- 이모티콘 전송 시 /api/chat 호출이 없어야 함
+- ChatMessage.text를 optional로 바꾸면 app/api/chat/route.ts와 app/api/proactive/route.ts 타입 오류가 생길 수 있음
+- 그래서 현재는 text: string 유지 + 이미지 메시지는 text: "" 로 처리하는 방식이 안전함
+
+다음에 하면 좋은 작업:
+- 실제 이미지 파일을 public/emojis/{category}/1.png~3.png 구조로 추가
+- 필요하면 기존 0바이트 public/emojis/*.png 파일 정리
+- 브라우저에서 이모티콘 패널 클릭, 전송, 새로고침 후 유지 여부 직접 확인
