@@ -14,8 +14,8 @@ function getImageSrc(message: ChatMessage) {
 
 export default function ChatWindow({ messages, loading }: Props) {
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-[#abc1d1] px-4 py-4">
-      <div className="mx-auto flex max-w-md flex-col gap-3 pb-4">
+    <div className="chat-scroll min-h-0 flex-1 overflow-y-auto bg-[#abc1d1] px-3 py-3 sm:px-4">
+      <div className="mx-auto flex w-full max-w-[430px] flex-col gap-2.5 pb-3">
         {messages.map((msg) => {
           const isUser = msg.role === "user";
           const hasImage = !!msg.image;
@@ -23,20 +23,22 @@ export default function ChatWindow({ messages, loading }: Props) {
           return (
             <div
               key={msg.id}
-              className={`flex min-w-0 ${
-                isUser ? "justify-end" : "justify-start"
-              }`}
+              className={`flex min-w-0 items-end ${
+                isUser ? "justify-end pl-10" : "justify-start pr-10"
+              } ${hasImage ? "py-0.5" : ""}`}
             >
               {hasImage ? (
                 <img
                   src={getImageSrc(msg)}
                   alt="이모티콘"
-                  className="h-24 w-24 object-contain sm:h-28 sm:w-28"
+                  className="h-[88px] w-[88px] shrink-0 object-contain sm:h-24 sm:w-24"
                 />
               ) : (
                 <div
-                  className={`max-w-[78%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2 text-[15px] leading-relaxed shadow-sm [overflow-wrap:anywhere] ${
-                    isUser ? "bg-[#FEE500] text-black" : "bg-white text-black"
+                  className={`max-w-[78%] whitespace-pre-wrap break-words px-3.5 py-2 text-[15px] leading-[1.42] text-[#242424] [overflow-wrap:anywhere] ${
+                    isUser
+                      ? "rounded-[16px] rounded-tr-[5px] bg-[#FEE500]"
+                      : "rounded-[16px] rounded-tl-[5px] border border-black/[0.04] bg-white shadow-[0_1px_1px_rgba(0,0,0,0.04)]"
                   }`}
                 >
                   {msg.text}
@@ -47,9 +49,14 @@ export default function ChatWindow({ messages, loading }: Props) {
         })}
 
         {loading && (
-          <div className="flex justify-start">
-            <div className="rounded-2xl bg-white px-4 py-2 text-sm text-gray-500 shadow-sm">
-              입력중...
+          <div className="flex justify-start pr-10">
+            <div className="flex h-8 items-center gap-1 rounded-[16px] rounded-tl-[5px] border border-black/[0.04] bg-white px-3 shadow-[0_1px_1px_rgba(0,0,0,0.04)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#8b98a3]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#a1abb4]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#b5bec5]" />
+              <span className="sr-only">
+                입력중
+              </span>
             </div>
           </div>
         )}

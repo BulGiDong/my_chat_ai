@@ -1,10 +1,11 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import process from "node:process";
 
 const args = parseArgs(process.argv.slice(2));
 const apiURL = args.get("--api") ?? "http://localhost:3000/api/chat";
-const outputPath = args.get("--output") ?? "tone_test_results.json";
-const reportPath = args.get("--report");
+const outputPath = args.get("--output") ?? "test-results/tone-latest.json";
+const reportPath = args.get("--report") ?? "docs/test-reports/tone-latest.md";
 const comparePath = args.get("--compare");
 const comparisonPath = args.get("--comparison");
 const sourcePath = args.get("--source");
@@ -12,6 +13,10 @@ const label = args.get("--label") ?? "current";
 const sourceRun = sourcePath ? JSON.parse(await readFile(sourcePath, "utf8")) : null;
 const runsPerCase = sourceRun?.runsPerCase ?? parsePositiveInteger(process.env.TONE_TEST_RUNS ?? "3", "TONE_TEST_RUNS");
 const cases = JSON.parse(await readFile("tone_test_cases.json", "utf8"));
+
+await mkdir(dirname(outputPath), { recursive: true });
+if (reportPath) await mkdir(dirname(reportPath), { recursive: true });
+if (comparisonPath) await mkdir(dirname(comparisonPath), { recursive: true });
 
 const expectedDistribution = {
   casual: 12,

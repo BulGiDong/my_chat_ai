@@ -22,14 +22,14 @@ type Props = {
 
 export default function EmojiPanel({ onSelect, cacheKey }: Props) {
   return (
-    <div className="max-h-72 overflow-y-auto rounded-xl bg-white p-3 shadow-lg">
-      <div className="space-y-4">
+    <div className="max-h-[34dvh] overflow-y-auto bg-white px-3 py-3">
+      <div className="space-y-3">
         {CATEGORIES.map((category) => (
           <section key={category.key}>
-            <div className="mb-2 text-sm font-semibold text-gray-600">
+            <div className="mb-1.5 text-[12px] font-semibold text-[#66727c]">
               {category.label}
             </div>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            <div className="grid grid-cols-4 gap-2 min-[390px]:grid-cols-5 sm:grid-cols-6">
               {EMOJI_NUMBERS.map((number) => {
                 const imagePath = `/emojis/${category.key}/${number}.png`;
 
@@ -38,13 +38,13 @@ export default function EmojiPanel({ onSelect, cacheKey }: Props) {
                     key={imagePath}
                     type="button"
                     onClick={() => onSelect(imagePath)}
-                    className="flex aspect-square items-center justify-center rounded-xl border border-gray-100 bg-gray-50 p-2 transition active:scale-95 hover:bg-gray-100"
+                    className="flex aspect-square min-h-[64px] items-center justify-center rounded-[12px] border border-[#edf0f2] bg-[#f8fafb] p-2 outline-none transition active:scale-[0.96] hover:bg-[#f1f4f6] focus-visible:ring-2 focus-visible:ring-[#7e9fb7]"
                     aria-label={`${category.label} ${number}`}
                   >
                     <img
                       src={`${imagePath}?v=${cacheKey}`}
                       alt={`${category.label} ${number}`}
-                      className="h-full max-h-20 w-full object-contain"
+                      className="h-full max-h-[72px] w-full object-contain"
                     />
                   </button>
                 );

@@ -3,8 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import ChatWindow from "@/components/ChatWindow";
 import MessageInput from "@/components/MessageInput";
-import { loadMessages, saveMessages } from "@/lib/memory";
-import { ChatApiResponse, ChatMessage } from "@/types/chat";
+import {
+  createDefaultConversationState,
+  decayConversationState,
+  updateConversationState,
+} from "@/lib/conversation-state";
+import {
+  loadConversationState,
+  loadMessages,
+  saveConversationState,
+  saveMessages,
+} from "@/lib/memory";
+import { ChatApiResponse, ChatMessage, ConversationState } from "@/types/chat";
 
 const IS_TEST_REPLY_DELAY = true;
 const AI_EMOJI_CHANCE = 0.15;
@@ -186,8 +196,11 @@ function getForcedAiEmojiPath(message: string, reply: string, messages: ChatMess
 
 export default function HomePage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [conversationState, setConversationState] =
+    useState<ConversationState>(() => createDefaultConversationState());
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const storageLoadedRef = useRef(false);
   const proactiveTimerRef = useRef<number | null>(null);
   const replyDelayTimersRef = useRef<number[]>([]);
 
@@ -199,11 +212,19 @@ export default function HomePage() {
     } else {
       setMessages([makeMessage("assistant", "머행")]);
     }
+
+    setConversationState(loadConversationState());
+    storageLoadedRef.current = true;
   }, []);
 
   useEffect(() => {
     saveMessages(messages);
   }, [messages]);
+
+  useEffect(() => {
+    if (!storageLoadedRef.current) return;
+    saveConversationState(conversationState);
+  }, [conversationState]);
 
   useEffect(() => {
     return () => {
@@ -232,11 +253,17 @@ export default function HomePage() {
   const showAssistantMessageAfterDelay = (
     sourceMessage: string,
     reply: string,
-    emojiHistory: ChatMessage[]
+    emojiHistory: ChatMessage[],
+    stateForReply: ConversationState
   ) => {
     scheduleReplyDelayTimer(() => {
       setMessages((prev) => [...prev, makeMessage("assistant", reply)]);
       setLoading(false);
+      setConversationState((current) =>
+        decayConversationState(
+          current.updatedAt === stateForReply.updatedAt ? stateForReply : current
+        )
+      );
 
       const emojiPath = isEmojiRequest(sourceMessage)
         ? getForcedAiEmojiPath(sourceMessage, reply, emojiHistory)
@@ -296,8 +323,10 @@ export default function HomePage() {
 
     const userMsg = makeMessage("user", text);
     const nextMessages = [...messages, userMsg];
+    const nextConversationState = updateConversationState(conversationState, text);
 
     setMessages(nextMessages);
+    setConversationState(nextConversationState);
     setInput("");
     setLoading(true);
 
@@ -314,18 +343,25 @@ export default function HomePage() {
         body: JSON.stringify({
           message: text,
           history: apiHistory,
+          conversationState: nextConversationState,
         }),
       });
 
       const data = (await res.json()) as ChatApiResponse;
 
-      showAssistantMessageAfterDelay(text, data.reply || "머행", messages);
+      showAssistantMessageAfterDelay(
+        text,
+        data.reply || "머행",
+        messages,
+        nextConversationState
+      );
     } catch (error) {
       console.error(error);
       setMessages((prev) => [
         ...prev,
         makeMessage("assistant", "오류낫엉..."),
       ]);
+      setConversationState((current) => decayConversationState(current));
       setLoading(false);
     }
   };
@@ -336,8 +372,13 @@ export default function HomePage() {
     const userMsg = makeImageMessage("user", imagePath);
     const nextMessages = [...messages, userMsg];
     const emojiMessageText = getEmojiMessageText(imagePath);
+    const nextConversationState = updateConversationState(
+      conversationState,
+      emojiMessageText
+    );
 
     setMessages(nextMessages);
+    setConversationState(nextConversationState);
     setLoading(true);
     resetProactiveTimer(nextMessages);
 
@@ -350,18 +391,25 @@ export default function HomePage() {
         body: JSON.stringify({
           message: emojiMessageText,
           history: messages.slice(-8),
+          conversationState: nextConversationState,
         }),
       });
 
       const data = (await res.json()) as ChatApiResponse;
 
-      showAssistantMessageAfterDelay(emojiMessageText, data.reply || "웅웅", messages);
+      showAssistantMessageAfterDelay(
+        emojiMessageText,
+        data.reply || "웅웅",
+        messages,
+        nextConversationState
+      );
     } catch (error) {
       console.error(error);
       setMessages((prev) => [
         ...prev,
         makeMessage("assistant", "오류낫엉..."),
       ]);
+      setConversationState((current) => decayConversationState(current));
       setLoading(false);
     }
   };
@@ -369,6 +417,7 @@ export default function HomePage() {
   const clearChat = () => {
     const initial = [makeMessage("assistant", "머행")];
     setMessages(initial);
+    setConversationState(createDefaultConversationState());
 
     if (proactiveTimerRef.current) {
       window.clearTimeout(proactiveTimerRef.current);
@@ -382,31 +431,36 @@ export default function HomePage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#9bbbd4]">
-      <header className="border-b bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-md items-center justify-between px-4 py-4">
-          <div>
-            <div className="text-lg font-bold">윤호 AI</div>
-            <div className="text-sm text-gray-500">카톡 느낌 테스트</div>
+    <main className="chat-shell">
+      <section className="chat-app" aria-label="윤호 AI 채팅">
+        <header className="chat-header">
+          <div className="pointer-events-none absolute inset-x-16 bottom-2.5 text-center">
+            <div className="truncate text-[15px] font-semibold leading-5 text-[#222]">
+              윤호 AI
+            </div>
+            <div className="mt-0.5 truncate text-[11px] leading-4 text-[#6c747b]">
+              지금 대화 가능
+            </div>
           </div>
           <button
             onClick={clearChat}
-            className="rounded-full border px-3 py-1 text-sm"
+            className="ml-auto min-h-10 shrink-0 rounded-full border border-[#d9dee3] bg-white px-3 text-[13px] font-medium text-[#4f5a63] outline-none transition active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#7e9fb7]"
+            aria-label="대화 초기화"
           >
             초기화
           </button>
-        </div>
-      </header>
+        </header>
 
-      <ChatWindow messages={messages} loading={loading} />
+        <ChatWindow messages={messages} loading={loading} />
 
-      <MessageInput
-        value={input}
-        onChange={setInput}
-        onSend={sendMessage}
-        onEmojiSend={sendEmoji}
-        disabled={loading}
-      />
+        <MessageInput
+          value={input}
+          onChange={setInput}
+          onSend={sendMessage}
+          onEmojiSend={sendEmoji}
+          disabled={loading}
+        />
+      </section>
     </main>
   );
 }

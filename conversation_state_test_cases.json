@@ -1,0 +1,140 @@
+[
+  {
+    "name": "슬픔 유지",
+    "turns": ["오늘 기분 안좋아", "그냥", "오빠 머행", "나 폰보는중", "뭐먹지"],
+    "expected": {
+      "initialMood": "sad",
+      "eventualMood": "hungry",
+      "eventualTopic": "food",
+      "stateAfterTurn": {
+        "4": { "mood": "normal" }
+      },
+      "maxQuestions": 2,
+      "notes": "초반 2~4턴은 따뜻하되 매번 질문하지 않고 이후 자연스럽게 풀림"
+    }
+  },
+  {
+    "name": "화남에서 진정",
+    "turns": ["나 진짜 화났어", "개짜증나", "됐어 이제 괜찮아", "머행"],
+    "expected": {
+      "initialMood": "angry",
+      "eventualMood": "normal",
+      "maxQuestions": 2,
+      "notes": "괜찮아 이후 상태 초기화"
+    }
+  },
+  {
+    "name": "배고픔",
+    "turns": ["배고파", "아직 밥 안먹었어", "나 공부중", "시험 언제지"],
+    "expected": {
+      "initialMood": "hungry",
+      "eventualTopic": "study",
+      "maxQuestions": 2,
+      "notes": "배고픔은 짧게 유지되고 공부 주제로 이동"
+    }
+  },
+  {
+    "name": "보고싶음",
+    "turns": ["보고싶어", "진짜루", "오빠 머해", "나 씻으러갈게"],
+    "expected": {
+      "initialMood": "affectionate",
+      "eventualMood": "normal",
+      "maxQuestions": 2,
+      "notes": "애정 표현은 따뜻하게 유지하되 과한 고백 금지"
+    }
+  },
+  {
+    "name": "새 감정으로 교체",
+    "turns": ["나 슬퍼", "근데 생각할수록 화나", "진짜 짜증남"],
+    "expected": {
+      "initialMood": "sad",
+      "finalMood": "angry",
+      "maxQuestions": 2,
+      "notes": "sad에서 angry로 교체"
+    }
+  },
+  {
+    "name": "시간 만료",
+    "initialState": {
+      "mood": "sad",
+      "topic": "relationship",
+      "situation": "오늘 기분이 안 좋다고 함",
+      "intensity": 2,
+      "remainingTurns": 3,
+      "updatedAtOffsetMs": -7201000
+    },
+    "turns": ["오빠 머행"],
+    "expected": {
+      "initialMood": "normal",
+      "eventualMood": "normal",
+      "maxQuestions": 1,
+      "notes": "2시간 이상 지난 상태는 초기화"
+    }
+  },
+  {
+    "name": "새로고침 복구",
+    "initialState": {
+      "mood": "tired",
+      "topic": "work",
+      "situation": "힘들거나 피곤하다고 함",
+      "intensity": 2,
+      "remainingTurns": 2,
+      "updatedAtOffsetMs": -300000
+    },
+    "turns": ["아직 일하는중"],
+    "expected": {
+      "initialMood": "tired",
+      "maxQuestions": 1,
+      "notes": "2시간 이내 상태는 유지"
+    }
+  },
+  {
+    "name": "피곤함 유지",
+    "turns": ["오늘 너무 피곤해", "누워있어", "오빠 뭐해"],
+    "expected": {
+      "initialMood": "tired",
+      "eventualMood": "normal",
+      "maxQuestions": 2,
+      "notes": "피곤함은 짧게 유지"
+    }
+  },
+  {
+    "name": "장난 상태",
+    "turns": ["오빠 바보 ㅋㅋ", "너가 더 바보야", "나 밥먹어"],
+    "expected": {
+      "initialMood": "playful",
+      "eventualTopic": "food",
+      "maxQuestions": 1,
+      "notes": "장난 말투 유지 후 음식 주제로 이동"
+    }
+  },
+  {
+    "name": "아픔 주제",
+    "turns": ["나 두통있어", "약간 아파", "그냥 누워있어"],
+    "expected": {
+      "eventualTopic": "health",
+      "maxQuestions": 2,
+      "notes": "건강 주제는 잡되 상담/의학 조언 금지"
+    }
+  },
+  {
+    "name": "평범한 대화는 상태 없음",
+    "turns": ["나 카페왔어", "커피마시는중", "오빠 머행"],
+    "expected": {
+      "initialMood": "normal",
+      "eventualMood": "normal",
+      "maxQuestions": 2,
+      "notes": "명확한 감정 없으면 normal 유지"
+    }
+  },
+  {
+    "name": "상태 해제 문장",
+    "turns": ["나 우울해", "아무것도 아냐 신경쓰지마", "나 게임할래"],
+    "expected": {
+      "initialMood": "sad",
+      "eventualMood": "normal",
+      "maxQuestions": 2,
+      "notes": "해제 표현 이후 normal"
+    }
+  }
+]
